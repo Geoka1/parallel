@@ -1,0 +1,71 @@
+name: Run benchmarks
+
+on:
+  push:
+    branches:
+      - main
+      - future
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  run-benchmark:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        benchmark:
+          - analytics
+          - bio
+          - ci-cd
+          - covid
+          - file-mod
+          - llm
+          - ml
+          - nlp
+          - oneliners
+          - pkg
+          - repl
+          - unixfun
+          - weather
+          - web-search.new
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull benchmarks image
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest # TODO: Use ref_name instead of latest
+          docker tag \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            benchmark-env
+
+      - name: Set execute permissions for main.sh
+        run: chmod +x main.sh
+
+      - name: Run Benchmark ${{ matrix.benchmark }} (min)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/benchmarks \
+            -w /benchmarks \
+            benchmark-env \
+            bash -c "./main.sh ${{ matrix.benchmark }} --bare --min"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.benchmark }}-logs-${{ github.sha }}
+          path: ${{ matrix.benchmark }}/${{ matrix.benchmark }}.*
+          if-no-files-found: error
