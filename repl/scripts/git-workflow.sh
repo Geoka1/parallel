@@ -1,5 +1,6 @@
-#!/bin/bash
-# source: posh benchmark suite
+#!/usr/bin/env bash
+# original script + GNU parallel **only**          ────────────────────────────
+# requires GNU parallel on $PATH; set THREADS to limit jobs (defaults: nproc)
 
 shopt -s expand_aliases
 
@@ -16,15 +17,15 @@ EVAL_DIR="${TOP}/repl"
 REPO_PATH="${EVAL_DIR}/inputs/chromium"
 COMMITS_DIR="${EVAL_DIR}/inputs/commits"
 NUM_COMMITS="${1:-20}"
+THREADS="${THREADS:-$(nproc)}"        # ← how many workers for GNU parallel
 
-# override HOME variable
 export HOME="$COMMITS_DIR"
 mkdir -p "$COMMITS_DIR"
 
 cd "$REPO_PATH" || exit 1
 
 g config user.email "author@example.com"
-g config user.name "A U Thor"
+g config user.name  "A U Thor"
 
 g stash
 gco main
@@ -40,23 +41,23 @@ base_commit=$(head -n 1 "$commit_file")
 echo "$base_commit" > ~/base_commit.txt
 
 num_patches=$((NUM_COMMITS - 1))
-read -r base_commit < "$commit_file"
-prev_commit="$base_commit"
-i=1
 
-tail -n +2 "$commit_file" | while read -r curr_commit; do
-    patch_upper=$((num_patches - i + 1))
-    patch_lower=$((patch_upper - 1))
-    
-    patchfile=~/${patch_upper}-${patch_lower}.diff
-    commitmsg=~/${patch_upper}-${patch_lower}.commit
-    
-    g diff "$prev_commit" "$curr_commit" > "$patchfile"
-    g log -1 --pretty=%B "$curr_commit" > "$commitmsg"
-    
-    prev_commit="$curr_commit"
-    i=$((i + 1))
-done
+###############################################################################
+# ▸▸  Generate all *.diff / *.commit pairs **in parallel**  ◂◂
+#    (independent, read-only ops → safe to parallelise)
+###############################################################################
+awk -v n="$num_patches" '
+  NR==1 {prev=$0; next}               # keep first commit as “prev”
+  {
+    upper = n - (NR-1) + 1            # patch_upper formula from original loop
+    lower = upper - 1                 # patch_lower
+    print prev, $0, upper, lower      # fields: prev curr upper lower
+    prev=$0
+  }' "$commit_file" | \
+parallel --colsep ' ' -j "$THREADS" '
+  g diff  {1} {2} > ~/{3}-{4}.diff
+  g log -1 --pretty=%B {2} > ~/{3}-{4}.commit
+'
 
 gst
 
@@ -74,13 +75,13 @@ for i in $(seq "$num_patches" -1 1); do
     commitmsg=~/${i}-${lower}.commit
     
     if [ -s "$patchfile" ]; then
-        #patch -p1 < "$patchfile" || { echo "Failed to apply $patchfile"; exit 1; }
         g apply "$patchfile" || { echo "Failed to apply $patchfile"; exit 1; }
 
         gst
 
         gaa
-        gci --author="A U Thor <author@example.com>" -F "$commitmsg" || { echo "Failed to commit with $commitmsg"; exit 1; }
+        gci --author="A U Thor <author@example.com>" -F "$commitmsg" \
+           || { echo "Failed to commit with $commitmsg"; exit 1; }
     else
         echo "Patch file $patchfile is empty, skipping commit."
     fi
