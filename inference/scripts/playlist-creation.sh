@@ -37,4 +37,4 @@ export OUT                   # needed inside each job
 # Feed one directory per parallel job.
 ###############################################################################
 find "$IN" -mindepth 1 -maxdepth 1 -type d -print0 \
-  | parallel --null --jobs "$(nproc)" --env OUT process_dir {}
+  | parallel --null --jobs 4 --env OUT process_dir {}

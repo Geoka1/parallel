@@ -27,4 +27,4 @@ pure_func() {
 export -f pure_func
 
 rm -f "$OUT"
-ls "$IMG_DIR"/*.png | sort | parallel -j"$(nproc)" pure_func {} >> "$OUT"
+ls "$IMG_DIR"/*.png | sort | parallel --jobs 4 pure_func {} >> "$OUT"
