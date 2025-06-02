@@ -4,6 +4,8 @@ CFLAGS='-DHAVE_CHECK_CRC32 -DHAVE_CHECK_CRC64 -DHAVE_CHECK_SHA256 -DHAVE_DECL_PR
 
 INCLUDES='-Isrc/liblzma/api -Isrc/liblzma/common -Isrc/liblzma/check -Isrc/liblzma/lz -Isrc/liblzma/rangecoder -Isrc/liblzma/lzma -Isrc/liblzma/delta -Isrc/liblzma/simple -Isrc/common'
 
+
+# Move some unbuilt files out of the way
 parallel ::: \
     "mv src/liblzma/check/crc32_small.c src/liblzma/check/crc32_small.c.exclude" \
     "mv src/liblzma/check/crc64_small.c src/liblzma/check/crc64_small.c.exclude" \
@@ -12,7 +14,7 @@ parallel ::: \
     "mv src/liblzma/rangecoder/price_tablegen.c src/liblzma/rangecoder/price_tablegen.c.exclude"
 
 # Build liblzma.so.5.3.1
-gcc -fPIC -Wl,--version-script=$PWD/src/liblzma/liblzma.map -shared -Wl,-soname,liblzma.so.5 -o liblzma.so.5.3.1 $CFLAGS src/common/*.c src/liblzma/*/*.c $INCLUDES
+clang -fPIC -Wl,--version-script=$PWD/src/liblzma/liblzma.map -shared -Wl,-soname,liblzma.so.5 -o liblzma.so.5.3.1 $CFLAGS src/common/*.c src/liblzma/*/*.c $INCLUDES
 
 
 parallel ::: \
@@ -29,7 +31,7 @@ ln liblzma.so.5.3.1 liblzma.so
 INCLUDES='-Isrc/common -Isrc/liblzma/api'
 
 # Build xzdec
-gcc $CFLAGS -o xzdec src/common/*.c src/xzdec/*.c $INCLUDES -L. -llzma
+clang $CFLAGS -o xzdec src/common/*.c src/xzdec/*.c $INCLUDES -L. -llzma
 
-# Build xz
-gcc $CFLAGS -o xz src/common/*.c src/xz/*.c $INCLUDES -L. -llzma
+# # Build xz
+clang $CFLAGS -o xz src/common/*.c src/xz/*.c $INCLUDES -L. -llzma
