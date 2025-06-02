@@ -6,10 +6,12 @@ IN=$TOP/inputs
 INDEX=${INDEX:-"$TOP/inputs/index.txt"}
 
 mkdir -p "${OUT}/"
-pkg_count=0
-while read -r package
-do
-    pkg_count=$((pkg_count + 1));
+
+export TOP MIR_BIN OUT IN
+
+cat "$INDEX" | nl -v1 | parallel --colsep '\t' --halt now,fail=1 '
+    pkg_count={1}
+    package={2}
     cd "$IN/node_modules/$package" || exit 1
-    ${MIR_BIN} -p  > "${OUT}/$pkg_count.log"
-done < "$INDEX"
+    "$MIR_BIN" -p > "$OUT/$pkg_count.log"
+'

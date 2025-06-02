@@ -13,11 +13,12 @@ export VECLIB_MAXIMUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
 pure_func() {
-    img=$1
+    local img="$1"
+    local tmp_boxes
     tmp_boxes=$(mktemp)
 
-    cat "$img" | python3 scripts/sam_segment.py > "$tmp_boxes"
-    python3 scripts/classify.py "$img" < "$tmp_boxes" | while read -r line; do
+    cat "$img" | python scripts/sam_segment.py > "$tmp_boxes"
+    python scripts/classify.py "$img" < "$tmp_boxes" | while read -r line; do
         echo "\"$(basename "$img")\" $line"
     done
 
@@ -26,6 +27,4 @@ pure_func() {
 export -f pure_func
 
 rm -f "$OUT"
-for img in "$IMG_DIR"/*.png; do
-    pure_func "$img" >> "$OUT"
-done
+ls "$IMG_DIR"/*.png | sort | parallel -j"$(nproc)" pure_func {} >> "$OUT"

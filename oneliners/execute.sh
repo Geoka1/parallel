@@ -39,7 +39,7 @@ if [[ $size == "small" ]]; then
     )
     chess_input="$input_dir/chessdata_small"
     comm_input="$input_dir/comm_small"
-
+    export BLOCK_SIZE=3000000/$(nproc)
 elif [[ $size == "min" ]]; then
     scripts_inputs=(
         "nfa-regex;1M"

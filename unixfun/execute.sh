@@ -45,10 +45,12 @@ scripts_inputs=(
 "35;11"
 "36;11"
 )
-
+export jobs=$(nproc)
 suffix=""
 if [[ " $* " == *" --small "* ]]; then
     suffix="_30M"
+    # block size is 30m / jobs
+    export BLOCK_SIZE=3000000/jobs
 elif [[ " $* " == *" --min "* ]]; then
     suffix=""
 else

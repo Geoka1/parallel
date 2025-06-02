@@ -1,6 +1,4 @@
 #!/bin/bash 
-# tag: find_anagrams.sh
-# set -e
 
 IN=${IN:-$SUITE_DIR/inputs/pg}
 OUT=${1:-$SUITE_DIR/outputs/8.3_2/}
@@ -15,12 +13,9 @@ pure_func() {
     sort ${TEMPDIR}/${input}.types ${TEMPDIR}/${input}.types.rev | uniq -c | awk "\$1 >= 2 {print \$2}"
     rm -rf ${TEMPDIR}
 }
-
 export -f pure_func
-for input in $(ls ${IN} | head -n ${ENTRIES} | xargs -I arg1 basename arg1)
-do
-    cat $IN/$input |  tr -c 'A-Za-z' '[\n*]' | grep -v "^\s*$" | pure_func $input > ${OUT}/${input}.out
-done
+
+ls ${IN} | head -n ${ENTRIES} | xargs -I arg1 basename arg1 | \
+    parallel -j "$(nproc)" "cat ${IN}/{} | tr -c 'A-Za-z' '[\n*]' | grep -v '^\s*$' | pure_func {} > ${OUT}/{}.out"
 
 echo 'done';
-# rm -rf "$OUT"

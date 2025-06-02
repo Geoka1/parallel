@@ -17,8 +17,4 @@ pure_func() {
 }
 export -f pure_func
 
-for item in $1/*;
-do
-    logname=$2/$(basename $item).log;
-    cat $item | pure_func > $logname
-done
+find "$1" -type f | parallel "cat {} | pure_func > $2/{/}.log"

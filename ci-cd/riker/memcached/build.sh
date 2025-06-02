@@ -14,13 +14,20 @@ else
   TESTAPP_SRC="$TESTAPP_SRC hash.c"
 fi
 
-# Build the release version of memcached
-gcc $CFLAGS -DNDEBUG -o memcached $MEMCACHED_SRC -levent
-# Build the debug version of memcached
-gcc $CFLAGS -fprofile-arcs -ftest-coverage -DMEMCACHED_DEBUG -o memcached-debug $MEMCACHED_SRC -levent
-# Build the sizes executable
-gcc $CFLAGS -o sizes sizes.c -levent
-# Build the testapp executable
-gcc $CFLAGS -o testapp $TESTAPP_SRC -levent
-# Build the timedrun executable
-gcc $CFLAGS -o timedrun timedrun.c -levent
+# # Build the release version of memcached
+# gcc $CFLAGS -DNDEBUG -o memcached $MEMCACHED_SRC -levent
+# # Build the debug version of memcached
+# gcc $CFLAGS -fprofile-arcs -ftest-coverage -DMEMCACHED_DEBUG -o memcached-debug $MEMCACHED_SRC -levent
+# # Build the sizes executable
+# gcc $CFLAGS -o sizes sizes.c -levent
+# # Build the testapp executable
+# gcc $CFLAGS -o testapp $TESTAPP_SRC -levent
+# # Build the timedrun executable
+# gcc $CFLAGS -o timedrun timedrun.c -levent
+
+parallel ::: \
+    "gcc $CFLAGS -DNDEBUG -o memcached $MEMCACHED_SRC -levent" \
+    "gcc $CFLAGS -fprofile-arcs -ftest-coverage -DMEMCACHED_DEBUG -o memcached-debug $MEMCACHED_SRC -levent" \
+    "gcc $CFLAGS -o sizes sizes.c -levent" \
+    "gcc $CFLAGS -o testapp $TESTAPP_SRC -levent" \
+    "gcc $CFLAGS -o timedrun timedrun.c -levent"

@@ -6,7 +6,10 @@ mkdir -p "$OUT"
 
 ollama serve > ollama_serve.log 2>&1 &
 ollama pull gemma3
-find "$IN" -type f -iname "*.jpg" | while IFS= read -r img; do
+process_one() {
+    local img="$1"
+
+    # Original logic — unchanged
     title=$(llm -m gemma3 \
         "Your only output should be a **single** small title for this image:" \
         -a "$img" -o seed 0 -o temperature 0 < /dev/null)
@@ -16,12 +19,14 @@ find "$IN" -type f -iname "*.jpg" | while IFS= read -r img; do
     count=1
 
     while [ -e "$OUT/$filename" ]; do
-        filename="${base}_$count.jpg"
+        filename="${base}_${count}.jpg"
         count=$((count + 1))
     done
 
     cp "$img" "$OUT/$filename"
-done
+}
+export -f process_one
+export OUT         
 
-ollama_pid=$(pgrep ollama)
-kill $ollama_pid
+find "$IN" -type f -iname '*.jpg' -print0 |
+  parallel --null --jobs "$(nproc)" --env OUT process_one {}
