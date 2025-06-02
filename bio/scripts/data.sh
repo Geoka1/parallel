@@ -194,19 +194,22 @@ cat fantom5/HeLa.rep3.hg38.ctss_chr.bed | sed 's/^chrM/MT/g' | sed 's/^chr//g' |
 echo ">>> GET NET-CAGE SIGNALS <<<"
 
 # Convert to hg19 to hg38
-for gz in NET-CAGE/*.bed.gz; do
-    base=${gz%.bed.gz}
+threads=4  # number of parallel jobs
 
-    fifo=$(mktemp -u)
-    mkfifo "$fifo"
-    ( gunzip -c "$gz" >"$fifo" ) &
+process_file() {
+  gz="$1"
+  base=${gz%.bed.gz}
 
-  #liftOver \
-   # <(gunzip -c "$gz") \ 
-    liftOver "$fifo" \
+  fifo=$(mktemp -u)
+  mkfifo "$fifo"
+  (gunzip -c "$gz" >"$fifo") &
+
+  liftOver "$fifo" \
     hg19ToHg38.over.chain.gz \
     "${base}.hg38.ctss_chr.raw.bed" \
     "${base}.hg38.unmap.ctss_chr.bed"
+
+  rm "$fifo"
 
   sort -k1,1 -k2,2n --parallel=$threads "${base}.hg38.ctss_chr.raw.bed" |
     sed \
@@ -217,10 +220,12 @@ for gz in NET-CAGE/*.bed.gz; do
       -e 's/Un_KI270742v1/KI270742.1/' |
     sort -k1,1 -k2,2n --parallel=$threads \
     > "${base}.hg38.ctss_chr.bed"
+}
 
-  rm "${base}.hg38.ctss_chr.raw.bed"
-done
+export -f process_file
 
+# Find and process files in parallel (max 4 jobs)
+find NET-CAGE -name '*.bed.gz' | parallel -j4 process_file {}
 #cat meth/encodeCcreHela.bed | cut -f 10 | sort | uniq -c
 #  20023 CTCF-only,CTCF-bound
 #  31295 dELS
