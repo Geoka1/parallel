@@ -1,3 +1,4 @@
+#/bin/bash
 mkdir -p $2
 
 pure_func() {
